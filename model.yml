@@ -1,0 +1,17 @@
+binary: project
+config: 
+  - config/cell_cycle/PhysiCell_settings.xml
+  - config/cell_cycle/PhysiCell_settings_foxo3_knockout.xml
+  - config/cell_cycle/PhysiCell_settings_p110_knockin.xml
+  - config/cell_cycle/PhysiCell_settings_plk1_knockout.xml
+  - config/differentiation/PhysiCell_settings.xml
+  - config/differentiation/PhysiCell_settings_FOXP3_2_mutant.xml
+  - config/differentiation/PhysiCell_settings_NFKB_mutant.xml
+  - config/differentiation/PhysiCell_settings_FOXP3_2_lower.xml
+  - config/differentiation/PhysiCell_settings_NFKB_lower.xml
+  - config/simple_tnf/0_Initial.xml
+  - config/simple_tnf/1_Long_TNF_stochastic_time.xml
+  - config/simple_tnf/1_Long_TNF.xml
+  - config/simple_tnf/2_Short_TNF.xml
+  - config/simple_tnf/3_Necrotic_core.xml
+  - config/simple_tnf/4_Mutants.xml

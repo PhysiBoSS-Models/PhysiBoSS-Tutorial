@@ -1,0 +1,200 @@
+name: Build binaries
+
+on:
+  push:
+  pull_request:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  packages: write
+   
+jobs:
+         
+  ubuntu:
+    
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Build model
+      run: |
+        make static STATIC_OPENMP=/usr/lib/gcc/x86_64-linux-gnu/12/libgomp.a
+      
+    - name: Checking binary for model
+      run: |
+        ldd project
+            
+    - name: Build model
+      run: |
+        rm -fr config/PhysiCell_settings-backup.xml
+        tar -zcvf physiboss-tutorial-linux.tar.gz project Makefile main.cpp config/ custom_modules/ model.yml
+         
+    - uses: actions/upload-release-asset@v1
+      if: github.event_name == 'release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_name: physiboss-tutorial-linux.tar.gz
+        asset_path: ${{ github.workspace }}/physiboss-tutorial-linux.tar.gz
+        asset_content_type: application/gzip   
+        
+        
+  windows:
+    runs-on: windows-2022
+    
+    defaults:
+      run:
+        shell: msys2 {0}
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: msys2/setup-msys2@v2
+      id: setup-msys2
+      with:
+        update: true
+        install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 mingw-w64-x86_64-python mingw-w64-x86_64-python-zstandard mingw-w64-x86_64-python-cffi make bison flex mingw-w64-x86_64-ca-certificates
+
+    - name: Build model
+      run: |
+        python beta/setup_windows_dep.py
+        make static
+        
+    - name: Checking binary for model
+      run: |
+        ldd .\\project.exe
+      
+    - name: Build model archive
+      run: |
+        rm -fr config/PhysiCell_settings-backup.xml
+        tar -zcvf physiboss-tutorial-win.tar.gz project.exe *.dll Makefile main.cpp config/ custom_modules/ model.yml
+        
+    - uses: actions/upload-release-asset@v1
+      if: github.event_name == 'release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_name: physiboss-tutorial-win.tar.gz
+        asset_path: ${{ github.workspace }}\physiboss-tutorial-win.tar.gz
+        asset_content_type: application/gzip
+        
+  
+  macos_step0a:
+
+    runs-on: macos-13
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run : |
+        if ! brew list gcc@13 &>/dev/null; then
+          brew install gcc@13
+        else
+          echo "gcc@13 is already installed."
+        fi
+      
+    - name: Build model
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=13
+        make PHYSICELL_CPP=g++-13 static
+        cp project project_macos13
+
+    - name: Caching produced project binary 
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/project_macos13
+        key: ${{ runner.os }}-macos13-${{ github.run_id }}
+    
+    - name: Look at the generated binary
+      run: |
+        otool -L project
+        otool -l project
+        lipo -archs project
+    
+  macos_step0b:
+    
+    runs-on: macos-14
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run : |
+        if ! brew list gcc@13 &>/dev/null; then
+          brew install gcc@13
+        else
+          echo "gcc@13 is already installed."
+        fi
+      
+    - name: Build model
+      run: |
+        export MACOSX_DEPLOYMENT_TARGET=13
+        make PHYSICELL_CPP=g++-13 static
+        cp project project_macosm1
+   
+    - name: Caching produced project binary 
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/project_macosm1
+        key: ${{ runner.os }}-macosm1-${{ github.run_id }}
+      
+    - name: Look at the generated binary
+      run: |
+        otool -L project
+        otool -l project
+        lipo -archs project 
+        
+  macos_step1:
+    
+    runs-on: macos-13
+    needs: [macos_step0a, macos_step0b]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Caching produced project binary 
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/project_macosm1
+        key: ${{ runner.os }}-macosm1-${{ github.run_id }}
+    
+    - name: Caching produced project binary 
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ github.workspace }}/project_macos13
+        key: ${{ runner.os }}-macos13-${{ github.run_id }}
+    
+    - name: Creating universal binary
+      run: | 
+        lipo -create -output project project_macos13 project_macosm1
+
+    - name: Checking universal binary
+      run: |
+        lipo -archs project
+        otool -l project
+        otool -L project
+        
+    - name: Build project archive
+      run: |
+        rm -fr config/PhysiCell_settings-backup.xml
+        tar -zcvf physiboss-tutorial-macos.tar.gz project Makefile main.cpp config/ custom_modules/ model.yml
+        
+    - uses: actions/upload-release-asset@v1
+      if: github.event_name == 'release'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_name: physiboss-tutorial-macos.tar.gz
+        asset_path: ${{ github.workspace }}/physiboss-tutorial-macos.tar.gz
+        asset_content_type: application/gzip
