@@ -1,4 +1,6 @@
-# PhysiBoSS-Tutorial
+
+# PhysiBoSS-Tutorial  <a href="https://doi.org/10.5281/zenodo.17049596"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.17049596.svg" alt="DOI" align="right" style="padding-top: 15px"></a>
+
 
 This repository contains three examples of multiscale models: a modified version of a previously published model of cell fate decision processes in response to death receptor engagement and the effect of a tumor necrosis factor (TNF) treatment on these decisions, a cell cycle model for investigating the consequences of genetic perturbations in signaling, and a simplified model of immune cell differentiation. 
 
